@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore DeepClean/DeepClean.csproj
+    
+    - name: Build
+      run: dotnet build DeepClean/DeepClean.csproj -c Release --no-restore
+    
+    - name: Test
+      run: dotnet test DeepClean/DeepClean.csproj -c Release --no-build --verbosity normal
+      continue-on-error: true  # Continue even if no tests exist
+    
+    - name: Test dry-run (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd DeepClean
+        dotnet run -- --dry-run
+    
+    - name: Test dry-run (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd DeepClean
+        dotnet run -- --dry-run

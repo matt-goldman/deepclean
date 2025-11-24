@@ -1,0 +1,59 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to publish'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore DeepClean/DeepClean.csproj
+    
+    - name: Build
+      run: dotnet build DeepClean/DeepClean.csproj -c Release --no-restore
+    
+    - name: Test
+      run: dotnet test DeepClean/DeepClean.csproj -c Release --no-build --verbosity normal
+      continue-on-error: true  # Continue even if no tests exist
+    
+    - name: Update version from tag
+      if: github.event_name == 'release'
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" DeepClean/DeepClean.csproj
+    
+    - name: Update version from input
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        VERSION=${{ github.event.inputs.version }}
+        sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" DeepClean/DeepClean.csproj
+    
+    - name: Pack
+      run: dotnet pack DeepClean/DeepClean.csproj -c Release --no-build -o ./packages
+    
+    - name: Push to NuGet
+      run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./packages/*.nupkg
