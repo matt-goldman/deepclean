@@ -3,6 +3,8 @@
 [![CI](https://github.com/matt-goldman/deepclean/actions/workflows/ci.yml/badge.svg)](https://github.com/matt-goldman/deepclean/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/DeepClean.svg)](https://www.nuget.org/packages/DeepClean/)
 
+_"Somebody had to, right?"_
+
 A cross-platform .NET global tool that recursively deletes `bin` and `obj` folders from your current directory. Perfect for cleaning up .NET projects and freeing disk space.
 
 ## Features
