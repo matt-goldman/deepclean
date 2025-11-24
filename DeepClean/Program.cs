@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace DeepClean;
 
-class Program
+internal class Program
 {
     private static int deletedFolders = 0;
     private static long freedSpace = 0;
@@ -229,14 +229,45 @@ class Program
     {
         try
         {
-            var dirInfo = new DirectoryInfo(path);
-            return dirInfo.EnumerateFiles("*", SearchOption.AllDirectories)
-                .Sum(file => file.Length);
+            return CalculateDirectorySizeRecursive(path);
         }
         catch
         {
             return 0; // If we can't calculate, return 0
         }
+    }
+
+    static long CalculateDirectorySizeRecursive(string path)
+    {
+        long size = 0;
+        try
+        {
+            // Calculate size of files in current directory
+            var dirInfo = new DirectoryInfo(path);
+            foreach (var file in dirInfo.GetFiles())
+            {
+                try
+                {
+                    size += file.Length;
+                }
+                catch
+                {
+                    // Skip files we can't access
+                }
+            }
+
+            // Recursively calculate size of subdirectories
+            foreach (var subDir in dirInfo.GetDirectories())
+            {
+                size += CalculateDirectorySizeRecursive(subDir.FullName);
+            }
+        }
+        catch
+        {
+            // Skip directories we can't access
+        }
+
+        return size;
     }
 
     static string FormatBytes(long bytes)
